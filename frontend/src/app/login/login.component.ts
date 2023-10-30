@@ -114,6 +114,7 @@ export class LoginComponent implements OnInit {
       this.passwordControl.markAsPristine()
     })
 
+
     if (this.rememberMe.value) {
       localStorage.setItem('email', this.user.email)
     } else {
