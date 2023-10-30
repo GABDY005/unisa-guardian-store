@@ -17,6 +17,9 @@ import { FormSubmitService } from '../Services/form-submit.service'
 import { SnackBarHelperService } from '../Services/snack-bar-helper.service'
 import { TranslateService } from '@ngx-translate/core'
 import { SecurityQuestion } from '../Models/securityQuestion.model'
+import bcrypt from 'bcrypt';
+
+
 
 library.add(faUserPlus, faExclamationCircle)
 dom.watch()
@@ -28,13 +31,15 @@ dom.watch()
 })
 export class RegisterComponent implements OnInit {
   public emailControl: UntypedFormControl = new UntypedFormControl('', [Validators.required, Validators.email])
-  public passwordControl: UntypedFormControl = new UntypedFormControl('', [Validators.required, Validators.minLength(5), Validators.maxLength(40)])
+  public passwordControl: UntypedFormControl = new UntypedFormControl('', [Validators.required, Validators.minLength(), Validators.maxLength(40)])
   public repeatPasswordControl: UntypedFormControl = new UntypedFormControl('', [Validators.required, matchValidator(this.passwordControl)])
   public securityQuestionControl: UntypedFormControl = new UntypedFormControl('', [Validators.required])
   public securityAnswerControl: UntypedFormControl = new UntypedFormControl('', [Validators.required])
   public securityQuestions!: SecurityQuestion[]
   public selected?: number
   public error: string | null = null
+
+
 
   constructor (private readonly securityQuestionService: SecurityQuestionService,
     private readonly userService: UserService,
@@ -55,9 +60,27 @@ export class RegisterComponent implements OnInit {
   }
 
   save () {
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(this.passwordControl.value)) {
+      this.error = 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+      return;
+    }
+
+    const saltRounds = 10;
+    const password = this.passwordControl.value;
+
+    // Generate a password hash
+      bcrypt.hash(password, saltRounds, (err, hash) => {
+      if (err) {
+        console.error('Error hashing password:', err);
+        return;
+      });
+
+
     const user = {
       email: this.emailControl.value,
-      password: this.passwordControl.value,
+      password: hash,
       passwordRepeat: this.repeatPasswordControl.value,
       securityQuestion: this.securityQuestions.find((question) => question.id === this.securityQuestionControl.value),
       securityAnswer: this.securityAnswerControl.value

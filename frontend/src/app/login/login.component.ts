@@ -20,6 +20,9 @@ library.add(faKey, faEye, faEyeSlash, faGoogle)
 dom.watch()
 
 const oauthProviderUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
+const maxFailedAttempts = 5;
+const delayDuration = 5000;
+
 
 @Component({
   selector: 'app-login',
@@ -37,6 +40,8 @@ export class LoginComponent implements OnInit {
   public oauthUnavailable: boolean = true
   public redirectUri: string = ''
   constructor (private readonly configurationService: ConfigurationService, private readonly userService: UserService, private readonly windowRefService: WindowRefService, private readonly cookieService: CookieService, private readonly router: Router, private readonly formSubmitService: FormSubmitService, private readonly basketService: BasketService, private readonly ngZone: NgZone) { }
+
+  private failedLoginAttempts: number = 0;
 
   ngOnInit () {
     const email = localStorage.getItem('email')
@@ -68,6 +73,18 @@ export class LoginComponent implements OnInit {
   }
 
   login () {
+    this.failedLoginAttempts = 0;
+
+    if (this.failedLoginAttempts >= maxFailedAttempts) {
+      this.error = 'Too many failed login attempts. Please try again later.';
+      setTimeout(() => {
+        this.error = null;
+        this.failedLoginAttempts = 0;
+      }, delayDuration);
+      return;
+    }
+
+
     this.user = {}
     this.user.email = this.emailControl.value
     this.user.password = this.passwordControl.value
@@ -81,6 +98,8 @@ export class LoginComponent implements OnInit {
       this.userService.isLoggedIn.next(true)
       this.ngZone.run(async () => await this.router.navigate(['/search']))
     }, ({ error }) => {
+        this.failedLoginAttempts++;
+
       if (error.status && error.data && error.status === 'totp_token_required') {
         localStorage.setItem('totp_tmp_token', error.data.tmpToken)
         this.ngZone.run(async () => await this.router.navigate(['/2fa/enter']))
